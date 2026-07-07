@@ -7,7 +7,6 @@ import {
   Check,
   ExternalLink,
   AlertCircle,
-  Github,
   MessageSquare,
   Sparkles,
   ChevronDown,
@@ -15,7 +14,7 @@ import {
   KeyRound,
   User,
 } from "lucide-react";
-import { SiDiscord } from "react-icons/si";
+import { SiDiscord, SiGithub } from "react-icons/si";
 
 /* ── Types ─────────────────────────────────────────── */
 
@@ -359,7 +358,7 @@ export default function WizardPlaceholder() {
 
   if (participantLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
+      <div className="flex items-center justify-center min-h-[50vh]" role="status" aria-label="Loading wizard">
         <Loader2 className="w-6 h-6 text-accent animate-spin" aria-hidden="true" />
       </div>
     );
@@ -436,7 +435,7 @@ export default function WizardPlaceholder() {
               rel="noopener noreferrer"
               className="mt-4 inline-flex items-center gap-2 text-sm text-secondary hover:text-secondary/80 transition-colors duration-150 cursor-pointer"
             >
-              <Github className="w-4 h-4" aria-hidden="true" />
+              <SiGithub className="w-4 h-4" aria-hidden="true" />
               View your team repo
               <ExternalLink className="w-3 h-3" aria-hidden="true" />
             </a>
@@ -524,7 +523,7 @@ export default function WizardPlaceholder() {
             rel="noopener noreferrer"
             className="mt-3 inline-flex items-center gap-1.5 text-xs text-secondary hover:text-secondary/80 transition-colors duration-150 cursor-pointer"
           >
-            <Github className="w-3.5 h-3.5" aria-hidden="true" />
+            <SiGithub className="w-3.5 h-3.5" aria-hidden="true" />
             Team repo
             <ExternalLink className="w-3 h-3" aria-hidden="true" />
           </a>
@@ -753,7 +752,7 @@ export default function WizardPlaceholder() {
                     GitHub Username
                   </label>
                   <div className="relative">
-                    <Github
+                    <SiGithub
                       className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/30"
                       aria-hidden="true"
                     />
@@ -822,7 +821,7 @@ export default function WizardPlaceholder() {
                 </div>
                 {githubUsername && (
                   <div className="flex items-center gap-2 text-sm text-foreground/70">
-                    <Github className="w-4 h-4 text-foreground/40" aria-hidden="true" />
+                    <SiGithub className="w-4 h-4 text-foreground/40" aria-hidden="true" />
                     <span className="font-mono">{githubUsername}</span>
                   </div>
                 )}

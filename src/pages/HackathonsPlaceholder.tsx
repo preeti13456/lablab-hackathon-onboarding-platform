@@ -17,9 +17,8 @@ import {
   Calendar,
   Users,
   FileText,
-  Github,
 } from "lucide-react";
-import { SiDiscord } from "react-icons/si";
+import { SiDiscord, SiGithub } from "react-icons/si";
 
 /* ── Types ─────────────────────────────────────────── */
 
@@ -253,7 +252,7 @@ function HackathonFormModal({
             </div>
             <div>
               <label className="block text-xs text-foreground/60 uppercase tracking-wider mb-1.5 font-medium flex items-center gap-1">
-                <Github className="w-3 h-3" aria-hidden="true" />
+                <SiGithub className="w-3 h-3" aria-hidden="true" />
                 GitHub Org
               </label>
               <input
@@ -1090,7 +1089,7 @@ export default function HackathonsPlaceholder() {
 
   if (hackathonsLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
+      <div className="flex items-center justify-center min-h-[50vh]" role="status" aria-label="Loading hackathons">
         <Loader2 className="w-6 h-6 text-accent animate-spin" aria-hidden="true" />
       </div>
     );
@@ -1209,7 +1208,7 @@ export default function HackathonsPlaceholder() {
                   <div className="flex items-center gap-3 text-xs text-foreground/40 mb-4">
                     {hackathon.github_org && (
                       <span className="flex items-center gap-1">
-                        <Github className="w-3 h-3" aria-hidden="true" />
+                        <SiGithub className="w-3 h-3" aria-hidden="true" />
                         {hackathon.github_org}
                       </span>
                     )}

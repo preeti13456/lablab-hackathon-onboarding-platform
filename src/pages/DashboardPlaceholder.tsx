@@ -12,14 +12,13 @@ import {
   RefreshCw,
   ChevronDown,
   ChevronRight,
-  Github,
   MessageSquare,
   Users,
   Trophy,
   Shield,
   User,
 } from "lucide-react";
-import { SiDiscord } from "react-icons/si";
+import { SiDiscord, SiGithub } from "react-icons/si";
 
 /* ── Types ─────────────────────────────────────────── */
 
@@ -182,7 +181,7 @@ function ApproveResultModal({
         >
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs font-medium text-foreground/60 uppercase tracking-wider flex items-center gap-1.5">
-              <Github className="w-3.5 h-3.5" aria-hidden="true" />
+              <SiGithub className="w-3.5 h-3.5" aria-hidden="true" />
               GitHub Repository
             </span>
             {hasGithub ? (
@@ -450,7 +449,7 @@ export default function DashboardPlaceholder() {
 
   if (hackathonsLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
+      <div className="flex items-center justify-center min-h-[50vh]" role="status" aria-label="Loading dashboard">
         <Loader2 className="w-6 h-6 text-accent animate-spin" aria-hidden="true" />
       </div>
     );
@@ -646,7 +645,7 @@ export default function DashboardPlaceholder() {
                           className="text-xs text-secondary/60 hover:text-secondary flex items-center gap-1 cursor-pointer"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <Github className="w-3 h-3" aria-hidden="true" />
+                          <SiGithub className="w-3 h-3" aria-hidden="true" />
                           Repo
                           <ExternalLink className="w-2.5 h-2.5" aria-hidden="true" />
                         </a>
@@ -814,7 +813,7 @@ export default function DashboardPlaceholder() {
                                     ghOk ? "text-foreground/70" : "text-foreground/40"
                                   }`}
                                 >
-                                  <Github className="w-3.5 h-3.5" aria-hidden="true" />
+                                  <SiGithub className="w-3.5 h-3.5" aria-hidden="true" />
                                   {ghOk ? (
                                     p.github_username
                                   ) : (
