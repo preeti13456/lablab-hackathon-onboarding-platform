@@ -96,7 +96,11 @@ export default function AppLayout() {
 
   if (auth.status === "loading") {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div
+        className="min-h-screen bg-background flex items-center justify-center"
+        role="status"
+        aria-label="Loading application"
+      >
         <Loader2 className="w-6 h-6 text-accent animate-spin" aria-hidden="true" />
       </div>
     );
