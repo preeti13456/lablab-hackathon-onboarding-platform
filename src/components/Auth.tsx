@@ -1,47 +1,22 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
 import { APP_NAME, APP_TAGLINE } from "../lib/config";
-import { Mail, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { SiGithub } from "react-icons/si";
 
-type AuthMode = "magic" | "password";
+type AuthView = "signin" | "signup";
 
 export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [mode, setMode] = useState<AuthMode>("magic");
+  const [view, setView] = useState<AuthView>("signin");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{
     type: "success" | "error";
     text: string;
   } | null>(null);
 
-  async function handleMagicLink(e: React.FormEvent) {
-    e.preventDefault();
-    if (!email.trim()) return;
-
-    setLoading(true);
-    setMessage(null);
-
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
-      options: {
-        emailRedirectTo: `${window.location.origin}`,
-      },
-    });
-
-    if (error) {
-      setMessage({ type: "error", text: error.message });
-    } else {
-      setMessage({
-        type: "success",
-        text: "Magic link sent! Check your email inbox.",
-      });
-    }
-    setLoading(false);
-  }
-
-  async function handlePasswordSignIn(e: React.FormEvent) {
+  async function handleSignIn(e: React.FormEvent) {
     e.preventDefault();
     if (!email.trim() || !password) return;
 
@@ -61,6 +36,33 @@ export default function Auth() {
             ? "Wrong email or password. Try again."
             : error.message,
       });
+    }
+    setLoading(false);
+  }
+
+  async function handleSignUp(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.trim() || !password) return;
+
+    setLoading(true);
+    setMessage(null);
+
+    const { error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}`,
+      },
+    });
+
+    if (error) {
+      setMessage({ type: "error", text: error.message });
+    } else {
+      setMessage({
+        type: "success",
+        text: "Check your email for a confirmation link to complete sign up.",
+      });
+      setView("signin");
     }
     setLoading(false);
   }
@@ -112,109 +114,81 @@ export default function Auth() {
             </div>
           )}
 
-          {/* Tabs: Magic Link / Password */}
+          {/* Tabs: Sign In / Sign Up */}
           <div className="flex mb-6 bg-background rounded-xl p-1 border border-border">
             <button
               type="button"
               className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-150 ${
-                mode === "magic"
+                view === "signin"
                   ? "bg-accent text-black shadow-sm"
                   : "text-foreground/60 hover:text-foreground"
               }`}
-              onClick={() => setMode("magic")}
-              aria-pressed={mode === "magic"}
+              onClick={() => { setView("signin"); setMessage(null); }}
+              aria-pressed={view === "signin"}
             >
-              Magic Link
+              Sign In
             </button>
             <button
               type="button"
               className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-150 ${
-                mode === "password"
+                view === "signup"
                   ? "bg-accent text-black shadow-sm"
                   : "text-foreground/60 hover:text-foreground"
               }`}
-              onClick={() => setMode("password")}
-              aria-pressed={mode === "password"}
+              onClick={() => { setView("signup"); setMessage(null); }}
+              aria-pressed={view === "signup"}
             >
-              Password
+              Sign Up
             </button>
           </div>
 
-          {/* Email Form */}
-          {mode === "magic" ? (
-            <form onSubmit={handleMagicLink} className="space-y-4">
-              <div>
-                <label htmlFor="magic-email" className="sr-only">
-                  Email address
-                </label>
-                <input
-                  id="magic-email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="w-full px-4 py-3 bg-background border border-border rounded-xl text-foreground placeholder-foreground/40 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all duration-150"
-                  autoComplete="email"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={loading || !email.trim()}
-                className="w-full py-3 bg-accent text-black font-semibold rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-                ) : (
-                  <Mail className="w-4 h-4" aria-hidden="true" />
-                )}
-                Send Magic Link
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handlePasswordSignIn} className="space-y-4">
-              <div>
-                <label htmlFor="password-email" className="sr-only">
-                  Email address
-                </label>
-                <input
-                  id="password-email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="w-full px-4 py-3 bg-background border border-border rounded-xl text-foreground placeholder-foreground/40 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all duration-150"
-                  autoComplete="email"
-                />
-              </div>
-              <div>
-                <label htmlFor="password" className="sr-only">
-                  Password
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="w-full px-4 py-3 bg-background border border-border rounded-xl text-foreground placeholder-foreground/40 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all duration-150"
-                  autoComplete="current-password"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={loading || !email.trim() || !password}
-                className="w-full py-3 bg-accent text-black font-semibold rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-                ) : null}
-                Sign In
-              </button>
-            </form>
-          )}
+          {/* Email / Password Form */}
+          <form
+            onSubmit={view === "signin" ? handleSignIn : handleSignUp}
+            className="space-y-4"
+          >
+            <div>
+              <label htmlFor="auth-email" className="sr-only">
+                Email address
+              </label>
+              <input
+                id="auth-email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full px-4 py-3 bg-background border border-border rounded-xl text-foreground placeholder-foreground/40 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all duration-150"
+                autoComplete="email"
+              />
+            </div>
+            <div>
+              <label htmlFor="auth-password" className="sr-only">
+                Password
+              </label>
+              <input
+                id="auth-password"
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                className="w-full px-4 py-3 bg-background border border-border rounded-xl text-foreground placeholder-foreground/40 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/50 transition-all duration-150"
+                autoComplete={view === "signin" ? "current-password" : "new-password"}
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loading || !email.trim() || !password}
+              className="w-full py-3 bg-accent text-black font-semibold rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-150 active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+              ) : null}
+              {view === "signin" ? "Sign In" : "Create Account"}
+            </button>
+          </form>
 
           {/* Divider */}
           <div className="relative my-6">
