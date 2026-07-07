@@ -80,8 +80,8 @@ describe("AppLayout", () => {
     renderWithRouter(<AppLayout />);
 
     expect(screen.getAllByText("Onboarding")).toHaveLength(2); // desktop sidebar + mobile drawer
-    expect(screen.getAllByText("LabLab")).toHaveLength(2);
-    expect(screen.getAllByText("Sign Out")).toHaveLength(2);
+    expect(screen.getAllByText("LabLab")).toHaveLength(3); // desktop sidebar + mobile drawer + mobile header
+    expect(screen.getAllByText("Sign Out")).toHaveLength(3); // desktop sidebar + mobile drawer + mobile header
   });
 
   it("renders sidebar with organizer navigation", async () => {

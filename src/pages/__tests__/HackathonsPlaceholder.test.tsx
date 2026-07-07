@@ -83,6 +83,7 @@ let Hackathons: React.ComponentType;
 
 beforeEach(async () => {
   vi.clearAllMocks();
+  queryClient.clear();
   mockGetSession.mockResolvedValue({ data: { session: null }, error: null });
   mockFrom.mockReturnValue(createChain());
   mockFunctionsInvoke.mockReset();
