@@ -47,7 +47,7 @@ export default function Auth() {
     setLoading(true);
     setMessage(null);
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
       options: {
@@ -57,6 +57,12 @@ export default function Auth() {
 
     if (error) {
       setMessage({ type: "error", text: error.message });
+    } else if (data?.user && !data?.session) {
+      // User already exists but isn't logged in
+      setMessage({
+        type: "error",
+        text: "An account with this email already exists. Try signing in instead.",
+      });
     } else {
       setMessage({
         type: "success",
