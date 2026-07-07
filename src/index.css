@@ -1,0 +1,48 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Orbitron:wght@700;900&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "JetBrains Mono", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-heading: "Orbitron", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --color-primary: oklch(0.5771 0.2152 27.33);
+  --color-on-primary: oklch(1.0 0 0);
+  --color-secondary: oklch(0.5461 0.2152 262.88);
+  --color-accent: oklch(0.7227 0.192 149.58);
+  --color-background: oklch(0.2077 0.0398 265.75);
+  --color-foreground: oklch(1.0 0 0);
+  --color-muted: oklch(0.2258 0.0337 302.7);
+  --color-border: rgba(255,255,255,0.08);
+  --color-destructive: oklch(0.5771 0.2152 27.33);
+  --color-ring: oklch(0.5771 0.2152 27.33);
+}
+
+/* Base styles */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Focus visible ring */
+*:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
