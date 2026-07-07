@@ -6,7 +6,6 @@ on:
   pull_request:
 
 env:
-  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
   VERCEL_TEAM_ID: ${{ secrets.VERCEL_TEAM_ID }}
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
@@ -32,19 +31,22 @@ jobs:
           vercel pull \
             --yes \
             --environment=production \
+            --token=${{ secrets.VERCEL_TOKEN }} \
             --scope=${{ env.VERCEL_TEAM_ID }}
 
       - name: Build project artifacts
         run: |
           vercel build \
-            ${{ github.ref == 'refs/heads/main' && '--prod' || '' }}
+            ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} \
+            --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Deploy to Vercel
         id: deploy
         run: |
           URL=$(vercel deploy \
             --prebuilt \
-            ${{ github.ref == 'refs/heads/main' && '--prod' || '' }})
+            ${{ github.ref == 'refs/heads/main' && '--prod' || '' }} \
+            --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$URL" >> $GITHUB_OUTPUT
 
       - name: Comment preview URL on PR
