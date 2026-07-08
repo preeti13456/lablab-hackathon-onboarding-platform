@@ -88,6 +88,44 @@ export type Database = {
         }
         Relationships: []
       }
+      knowledge_base: {
+        Row: {
+          category: string
+          content: string
+          created_at: string | null
+          hackathon_id: string | null
+          id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          content: string
+          created_at?: string | null
+          hackathon_id?: string | null
+          id?: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string | null
+          hackathon_id?: string | null
+          id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_base_hackathon_id_fkey"
+            columns: ["hackathon_id"]
+            isOneToOne: false
+            referencedRelation: "hackathons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizer_hackathons: {
         Row: {
           created_at: string
@@ -159,7 +197,7 @@ export type Database = {
           id: string
           name: string
           steps_completed: Json
-          team_id: string
+          team_id: string | null
         }
         Insert: {
           auth_user_id?: string | null
@@ -171,7 +209,7 @@ export type Database = {
           id?: string
           name: string
           steps_completed?: Json
-          team_id: string
+          team_id?: string | null
         }
         Update: {
           auth_user_id?: string | null
@@ -183,7 +221,7 @@ export type Database = {
           id?: string
           name?: string
           steps_completed?: Json
-          team_id?: string
+          team_id?: string | null
         }
         Relationships: [
           {

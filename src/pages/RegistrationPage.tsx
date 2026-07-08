@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   ExternalLink,
   AlertCircle,
+  LogOut,
 } from "lucide-react";
 
 /* ── Types ─────────────────────────────────────────── */
@@ -60,6 +61,16 @@ export default function RegistrationPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // Existing registration
+  const [existingRegistration, setExistingRegistration] = useState<{
+    participant: Tables<"participants">;
+    hackathon: Tables<"hackathons">;
+    team: Tables<"teams"> | null;
+  } | null>(null);
+  const [loadingExisting, setLoadingExisting] = useState(true);
+  const [confirmingUnregister, setConfirmingUnregister] = useState(false);
+  const [confirmingLeaveTeam, setConfirmingLeaveTeam] = useState(false);
+
   // Fetch hackathons with teams
   useEffect(() => {
     async function fetchHackathons() {
@@ -96,6 +107,36 @@ export default function RegistrationPage() {
       setLoadingHackathons(false);
     }
     fetchHackathons();
+  }, []);
+
+  // Fetch existing participant registration
+  useEffect(() => {
+    async function fetchExisting() {
+      setLoadingExisting(true);
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.user) {
+        setLoadingExisting(false);
+        return;
+      }
+
+      const { data: participant } = await supabase
+        .from("participants")
+        .select("*, hackathon:hackathons(*), team:teams(*)")
+        .eq("auth_user_id", session.user.id)
+        .maybeSingle();
+
+      if (participant) {
+        setExistingRegistration({
+          participant: participant as Tables<"participants">,
+          hackathon: (participant as Record<string, unknown>).hackathon as Tables<"hackathons">,
+          team: ((participant as Record<string, unknown>).team as Tables<"teams">) ?? null,
+        });
+      }
+      setLoadingExisting(false);
+    }
+    fetchExisting();
   }, []);
 
   /* ── Role Selection ───────────────────────────────── */
@@ -157,6 +198,62 @@ export default function RegistrationPage() {
     setNewTeamName("");
     setSubmitting(false);
   }, [newTeamName, selectedHackathon]);
+
+  /* ── Sign Out ─────────────────────────────────────── */
+
+  const handleSignOut = useCallback(async () => {
+    await supabase.auth.signOut();
+  }, []);
+
+  /* ── Un-register from Hackathon ──────────────────── */
+
+  const handleUnregister = useCallback(async () => {
+    if (!existingRegistration) return;
+    setSubmitting(true);
+    setError(null);
+
+    const { error: deleteError } = await supabase
+      .from("participants")
+      .delete()
+      .eq("id", existingRegistration.participant.id);
+
+    if (deleteError) {
+      setError("Couldn't un-register. Please try again.");
+      setSubmitting(false);
+      return;
+    }
+
+    setExistingRegistration(null);
+    setConfirmingUnregister(false);
+    setSubmitting(false);
+  }, [existingRegistration]);
+
+  /* ── Leave Team ──────────────────────────────────── */
+
+  const handleLeaveTeam = useCallback(async () => {
+    if (!existingRegistration) return;
+    setSubmitting(true);
+    setError(null);
+
+    const { error: updateError } = await supabase
+      .from("participants")
+      .update({ team_id: null })
+      .eq("id", existingRegistration.participant.id);
+
+    if (updateError) {
+      setError("Couldn't leave the team. Please try again.");
+      setSubmitting(false);
+      return;
+    }
+
+    setExistingRegistration((prev) =>
+      prev
+        ? { ...prev, participant: { ...prev.participant, team_id: null }, team: null }
+        : null
+    );
+    setConfirmingLeaveTeam(false);
+    setSubmitting(false);
+  }, [existingRegistration]);
 
   /* ── Submit Registration ──────────────────────────── */
 
@@ -277,6 +374,19 @@ export default function RegistrationPage() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+      {/* Sign out — top right */}
+      <div className="fixed top-4 right-4 z-10">
+        <button
+          type="button"
+          onClick={handleSignOut}
+          className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-foreground/50 hover:text-foreground hover:bg-muted border border-transparent hover:border-border transition-all duration-150 cursor-pointer"
+          aria-label="Sign out"
+        >
+          <LogOut className="w-4 h-4" aria-hidden="true" />
+          <span className="hidden sm:inline">Sign Out</span>
+        </button>
+      </div>
+
       <div className="w-full max-w-2xl">
         {/* Logo / Brand */}
         <div className="mb-8 text-center">
