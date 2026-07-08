@@ -10,8 +10,7 @@ import {
   MessageSquare,
   Sparkles,
   ChevronDown,
-  Shield,
-  KeyRound,
+  Mail,
   User,
 } from "lucide-react";
 import { SiDiscord, SiGithub } from "react-icons/si";
@@ -43,11 +42,11 @@ const STEPS: StepDef[] = [
   },
   {
     key: "fireworks",
-    label: "Fireworks API Key",
+    label: "Fireworks Promo Code",
     description:
-      "Generate a Fireworks AI API key so your app can run large language models.",
-    href: "https://fireworks.ai/",
-    hrefLabel: "Get your API key",
+      "Visit AMD DevCloud, request a Fireworks promo code, and check your email. You'll use the promo code later to claim your credits.",
+    href: "https://devcloud.amd.com/",
+    hrefLabel: "Go to AMD DevCloud",
   },
   {
     key: "natively_ai",
@@ -188,9 +187,6 @@ export default function WizardPlaceholder() {
   const [teammates, setTeammates] = useState<Tables<"participants">[]>([]);
   const [hackathonName, setHackathonName] = useState("");
   const [saving, setSaving] = useState(false);
-  const [fireworksKey, setFireworksKey] = useState("");
-  const [fireworksValidating, setFireworksValidating] = useState(false);
-  const [fireworksError, setFireworksError] = useState("");
   const [saveError, setSaveError] = useState("");
   const [expandedStep, setExpandedStep] = useState<number | null>(null);
   const [completedMessage, setCompletedMessage] = useState(false);
@@ -298,30 +294,6 @@ export default function WizardPlaceholder() {
     },
     [participant, steps]
   );
-
-  const validateFireworks = useCallback(async () => {
-    if (!fireworksKey.trim() || !participant) return;
-    setFireworksValidating(true);
-    setFireworksError("");
-
-    const { data, error } = await supabase.functions.invoke("verify-fireworks", {
-      body: { api_key: fireworksKey.trim() },
-    });
-
-    if (error) {
-      setFireworksError("Could not reach the verification service. Try again.");
-      setFireworksValidating(false);
-      return;
-    }
-
-    if (data?.valid) {
-      await markStep("fireworks");
-      setFireworksValidating(false);
-    } else {
-      setFireworksError(data?.message ?? "Invalid API key — please check and try again.");
-      setFireworksValidating(false);
-    }
-  }, [fireworksKey, participant, markStep]);
 
   const saveGitHubDiscord = useCallback(async () => {
     if (!participant) return;
@@ -601,54 +573,26 @@ export default function WizardPlaceholder() {
                       <ExternalLink className="w-4 h-4" aria-hidden="true" />
                       {step.hrefLabel}
                     </a>
-                    <div className="space-y-2">
-                      <label
-                        htmlFor="fireworks-key"
-                        className="text-xs text-foreground/50 uppercase tracking-wider"
-                      >
-                        Fireworks API Key
-                      </label>
-                      <div className="relative">
-                        <KeyRound
-                          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/30"
-                          aria-hidden="true"
-                        />
-                        <input
-                          id="fireworks-key"
-                          type="password"
-                          value={fireworksKey}
-                          onChange={(e) => {
-                            setFireworksKey(e.target.value);
-                            setFireworksError("");
-                          }}
-                          placeholder="fw_3a... "
-                          className="w-full bg-background border border-border rounded-xl pl-10 pr-4 py-3 text-sm text-foreground placeholder:text-foreground/20 focus:outline-none focus:border-accent/50 focus:ring-1 focus:ring-accent/30 transition-all duration-150"
-                        />
-                      </div>
-                      {fireworksError && (
-                        <p className="text-xs text-destructive flex items-center gap-1.5">
-                          <AlertCircle className="w-3.5 h-3.5" aria-hidden="true" />
-                          {fireworksError}
-                        </p>
-                      )}
+                    <div className="flex items-start gap-2.5 p-3 rounded-xl bg-secondary/5 border border-secondary/10">
+                      <Mail className="w-4 h-4 text-secondary shrink-0 mt-0.5" aria-hidden="true" />
+                      <p className="text-xs text-foreground/60 leading-relaxed">
+                        After requesting your promo code on AMD DevCloud, check
+                        your email inbox. You don&apos;t need to paste anything
+                        here — just confirm you received the email.
+                      </p>
                     </div>
                     <button
                       type="button"
-                      onClick={validateFireworks}
-                      disabled={fireworksValidating || !fireworksKey.trim()}
+                      onClick={() => markStep("fireworks")}
+                      disabled={saving}
                       className="w-full flex items-center justify-center gap-2 bg-accent text-white font-medium rounded-xl px-5 py-3 hover:bg-accent/90 active:scale-[0.97] transition-all duration-150 disabled:opacity-50 cursor-pointer"
                     >
-                      {fireworksValidating ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-                          Validating…
-                        </>
+                      {saving ? (
+                        <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
                       ) : (
-                        <>
-                          <Shield className="w-4 h-4" aria-hidden="true" />
-                          Validate & Complete
-                        </>
+                        <Check className="w-4 h-4" aria-hidden="true" />
                       )}
+                      I got the promo code — Mark Complete
                     </button>
                   </div>
                 )}

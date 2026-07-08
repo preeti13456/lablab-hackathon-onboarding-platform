@@ -50,7 +50,6 @@ function createChain(responses?: {
 
 const mockGetSession = vi.fn();
 const mockFrom = vi.fn();
-const mockFunctionsInvoke = vi.fn();
 
 vi.mock("../../lib/supabase", () => ({
   supabase: {
@@ -61,9 +60,6 @@ vi.mock("../../lib/supabase", () => ({
       })),
     },
     from: (...args: unknown[]) => mockFrom(...args),
-    functions: {
-      invoke: (...args: unknown[]) => mockFunctionsInvoke(...args),
-    },
   },
 }));
 
@@ -93,7 +89,6 @@ beforeEach(async () => {
   mockUseCurrentParticipant.mockReturnValue({ participant: null, loading: true });
   mockGetSession.mockResolvedValue({ data: { session: null }, error: null });
   mockFrom.mockReturnValue(createChain());
-  mockFunctionsInvoke.mockReset();
   Wizard = (await import("../WizardPlaceholder")).default;
 });
 
