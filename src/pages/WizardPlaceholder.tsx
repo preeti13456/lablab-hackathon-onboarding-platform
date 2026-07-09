@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useCurrentParticipant } from "../hooks/useAuth";
 import { DISCORD_INVITE_URL } from "../lib/config";
@@ -8,10 +9,8 @@ import {
   Check,
   ExternalLink,
   AlertCircle,
-  Sparkles,
-  ChevronDown,
-  Mail,
   User,
+  Clock,
 } from "lucide-react";
 import { SiDiscord, SiGithub } from "react-icons/si";
 
@@ -38,53 +37,51 @@ interface StepDef {
 const STEPS: StepDef[] = [
   {
     key: "amd",
-    label: "AMD Cloud Account",
+    label: "Sign up for AMD Cloud",
     description:
       "Create an AMD Cloud account to access accelerated compute for your hackathon project.",
     href: "https://amdcloud.amd.com/",
-    hrefLabel: "Sign up for AMD Cloud",
+    hrefLabel: "Go to AMD Cloud →",
   },
   {
     key: "fireworks",
-    label: "Fireworks Promo Code",
+    label: "Claim your Fireworks promo code",
     description:
-      "Visit AMD DevCloud, request a Fireworks promo code, and check your email. You'll use the promo code later to claim your credits.",
+      "Visit AMD DevCloud, request a Fireworks promo code, and check your email. You'll use the promo code to claim your credits.",
     href: "https://devcloud.amd.com/",
-    hrefLabel: "Go to AMD DevCloud",
+    hrefLabel: "Go to AMD DevCloud →",
   },
   {
     key: "natively_ai",
-    label: "Natively AI Account",
+    label: "Create a Natively AI account",
     description:
       "Sign up for a Natively AI account to deploy and manage your AI pipelines.",
     href: "https://natively.ai/",
-    hrefLabel: "Create Natively AI account",
+    hrefLabel: "Go to Natively AI →",
   },
   {
     key: "discord",
-    label: "Join Discord",
+    label: "Join the Discord server",
     description:
       "Join the official hackathon Discord server to communicate with your team and get updates from the organizers.",
     href: DISCORD_INVITE_URL,
-    hrefLabel: "Join Discord Server",
+    hrefLabel: "Join Discord →",
   },
   {
     key: "github",
-    label: "Join GitHub",
+    label: "Set up your GitHub account",
     description:
       "Create a GitHub account (or sign in) so your team can collaborate on code and the organizer can add you to your team's repo.",
     href: "https://github.com/signup",
-    hrefLabel: "Create GitHub Account",
+    hrefLabel: "Create GitHub account →",
     href2: "https://github.com/login",
-    hrefLabel2: "Sign in to GitHub",
+    hrefLabel2: "Sign in to GitHub →",
   },
 ];
 
 /* ── Helpers ────────────────────────────────────────── */
 
-function getStepsCompleted(
-  raw: unknown
-): StepsCompleted {
+function getStepsCompleted(raw: unknown): StepsCompleted {
   if (typeof raw === "object" && raw !== null) {
     const r = raw as Record<string, unknown>;
     return {
@@ -98,100 +95,96 @@ function getStepsCompleted(
   return { amd: false, fireworks: false, natively_ai: false, discord: false, github: false };
 }
 
-/* ── Step Card ─────────────────────────────────────── */
+/* ── Step Detail Panel ─────────────────────────────── */
 
-function StepCard({
+function StepDetail({
   step,
   index,
   isComplete,
-  isActive,
-  children,
-  onToggle,
+  saving,
+  onMark,
 }: {
   step: StepDef;
   index: number;
   isComplete: boolean;
-  isActive: boolean;
-  children: React.ReactNode;
-  onToggle: () => void;
+  saving: boolean;
+  onMark: (key: keyof StepsCompleted) => void;
 }) {
-  const isLocked = !isComplete && !isActive;
-
   return (
-    <div
-      className={`rounded-2xl border transition-all duration-200 ${
-        isActive
-          ? "border-accent/40 bg-muted/80 shadow-[0_0_20px_rgba(34,197,94,0.06)]"
-          : isComplete
-            ? "border-border bg-muted/40"
-            : "border-border/60 bg-muted/20 opacity-50"
-      }`}
-    >
-      {/* Header (always clickable) */}
-      <button
-        type="button"
-        onClick={isLocked ? undefined : onToggle}
-        disabled={isLocked}
-        className="w-full flex items-center gap-4 p-5 text-left cursor-pointer transition-colors duration-150"
-      >
-        {/* Status icon */}
+    <div className="bg-muted/60 border border-border rounded-2xl p-5 space-y-4">
+      {/* Step header */}
+      <div className="flex items-start gap-3">
         <div
-          className={`w-10 h-10 rounded-xl border-2 flex items-center justify-center shrink-0 transition-all duration-200 ${
+          className={`w-8 h-8 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all duration-200 ${
             isComplete
-              ? "bg-accent/15 border-accent text-accent"
-              : isActive
-                ? "bg-background border-accent/50 text-accent"
-                : "bg-background border-border text-foreground/40"
+              ? "bg-accent border-accent text-background"
+              : "bg-background border-accent/50 text-accent"
           }`}
         >
           {isComplete ? (
-            <Check className="w-5 h-5" aria-hidden="true" />
-          ) : isActive ? (
-            <span className="font-heading text-sm">{index + 1}</span>
+            <Check className="w-4 h-4" aria-hidden="true" />
           ) : (
-            <span className="font-heading text-sm">{index + 1}</span>
+            <span className="text-xs font-bold">{index + 1}</span>
           )}
         </div>
-
-        {/* Label */}
-        <div className="flex-1 min-w-0">
-          <h3
-            className={`font-medium transition-colors duration-200 ${
-              isComplete
-                ? "text-accent"
-                : isActive
-                  ? "text-foreground"
-                  : "text-foreground/50"
-            }`}
-          >
+        <div>
+          <h3 className="text-sm font-semibold text-foreground leading-snug">
             {step.label}
-            {!isActive && isComplete && (
-              <span className="ml-2 text-xs text-accent/70 font-normal">
-                Complete
-              </span>
-            )}
           </h3>
-        </div>
-
-        {/* Chevron */}
-        <ChevronDown
-          className={`w-4 h-4 text-foreground/40 transition-transform duration-200 ${
-            isActive ? "rotate-180" : ""
-          }`}
-          aria-hidden="true"
-        />
-      </button>
-
-      {/* Expanded content */}
-      <div
-        className={`overflow-hidden transition-all duration-300 ${
-          isActive ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
-        }`}
-      >
-        <div className="px-5 pb-5 pt-0 border-t border-border/40">
-          {children}
+          {isComplete && (
+            <span className="inline-flex items-center gap-1 text-xs text-accent mt-0.5">
+              <Check className="w-3 h-3" />
+              Done
+            </span>
+          )}
         </div>
       </div>
+
+      <p className="text-sm text-foreground/60 leading-relaxed pl-11">
+        {step.description}
+      </p>
+
+      {/* Links */}
+      {!isComplete && (
+        <div className="pl-11 space-y-2">
+          {step.href && (
+            <a
+              href={step.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm text-secondary hover:text-secondary/80 transition-colors duration-150"
+            >
+              <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
+              {step.hrefLabel}
+            </a>
+          )}
+          {step.href2 && step.hrefLabel2 && (
+            <a
+              href={step.href2}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-sm text-secondary hover:text-secondary/80 transition-colors duration-150 block"
+            >
+              <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
+              {step.hrefLabel2}
+            </a>
+          )}
+
+          <button
+            type="button"
+            onClick={() => onMark(step.key)}
+            disabled={saving}
+            className="mt-2 flex items-center gap-2 px-4 py-2 rounded-xl bg-accent text-background text-sm font-semibold hover:bg-accent/90 active:scale-[0.97] transition-all duration-150 disabled:opacity-50"
+          >
+            {saving ? (
+              <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Check className="w-4 h-4" aria-hidden="true" />
+            )}
+            Mark as done
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -200,6 +193,7 @@ function StepCard({
 
 export default function WizardPlaceholder() {
   const { participant, loading: participantLoading } = useCurrentParticipant();
+  const navigate = useNavigate();
   const [steps, setSteps] = useState<StepsCompleted>({
     amd: false,
     fireworks: false,
@@ -212,8 +206,7 @@ export default function WizardPlaceholder() {
   const [hackathonName, setHackathonName] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
-  const [expandedStep, setExpandedStep] = useState<number | null>(null);
-  const [completedMessage, setCompletedMessage] = useState(false);
+  const [activeStep, setActiveStep] = useState<number | null>(null);
   const [infraCreating, setInfraCreating] = useState(false);
   const [infraResult, setInfraResult] = useState<{
     github_repo_url: string | null;
@@ -224,23 +217,20 @@ export default function WizardPlaceholder() {
     status: string;
   } | null>(null);
 
-  // Determine which step is active (first incomplete step)
-  const firstIncomplete = STEPS.findIndex((s) => !steps[s.key]);
-  const currentStepIndex =
-    firstIncomplete === -1 ? STEPS.length : firstIncomplete;
-
-  const allFiveDone =
-    steps.amd && steps.fireworks && steps.natively_ai && steps.discord && steps.github;
+  const completedCount = STEPS.filter((s) => steps[s.key]).length;
+  const allDone = completedCount === STEPS.length;
 
   // Load participant data
   useEffect(() => {
     if (!participant) return;
 
-    const raw = participant.steps_completed;
-    const parsed = getStepsCompleted(raw);
+    const parsed = getStepsCompleted(participant.steps_completed);
     setSteps(parsed);
 
-    // Fetch team + hackathon
+    // Open first incomplete step by default
+    const firstIncomplete = STEPS.findIndex((s) => !parsed[s.key]);
+    setActiveStep(firstIncomplete === -1 ? null : firstIncomplete);
+
     if (participant.team_id) {
       supabase
         .from("teams")
@@ -277,18 +267,18 @@ export default function WizardPlaceholder() {
       });
   }, [participant]);
 
-  // Show completed message after all steps done AND infrastructure attempted
+  // Redirect to /register when all steps are done and infra is settled
   useEffect(() => {
-    if (!allFiveDone) return;
-    // Either we have an infra result from a fresh attempt, or the team
-    // already has infrastructure from a previous session.
-    const teamHasInfra = team?.is_approved || team?.github_repo_url || team?.discord_channel_id;
+    if (!allDone) return;
+    const teamHasInfra =
+      team?.is_approved || team?.github_repo_url || team?.discord_channel_id;
     if (infraResult || teamHasInfra) {
-      setCompletedMessage(true);
+      const timer = setTimeout(() => navigate("/register"), 2500);
+      return () => clearTimeout(timer);
     }
-  }, [allFiveDone, infraResult, team]);
+  }, [allDone, infraResult, team, navigate]);
 
-  /* ── Actions ──────────────────────────────────────── */
+  /* ── Mark step complete ──────────────────────────── */
 
   const markStep = useCallback(
     async (key: keyof StepsCompleted) => {
@@ -309,7 +299,6 @@ export default function WizardPlaceholder() {
         return;
       }
 
-      // Log to audit
       await supabase.from("audit_logs").insert({
         hackathon_id: participant.hackathon_id,
         actor_id: participant.id,
@@ -321,10 +310,9 @@ export default function WizardPlaceholder() {
       setSteps(updated);
       setSaving(false);
 
-      const allDone = STEPS.every((s) => updated[s.key]);
+      const nowAllDone = STEPS.every((s) => updated[s.key]);
 
-      if (allDone && participant.team_id) {
-        // Trigger infrastructure creation now that all steps are complete
+      if (nowAllDone && participant.team_id) {
         setInfraCreating(true);
         const { data: infraResp, error: infraErr } = await supabase.functions.invoke(
           "create-team-infrastructure",
@@ -345,7 +333,6 @@ export default function WizardPlaceholder() {
           setInfraResult(infraResp as typeof infraResult);
         }
 
-        // Refresh team data
         const { data: updatedTeam } = await supabase
           .from("teams")
           .select("*")
@@ -353,19 +340,23 @@ export default function WizardPlaceholder() {
           .single();
         if (updatedTeam) setTeam(updatedTeam);
       } else {
-        // Auto-advance to next incomplete step
+        // Auto-advance to the next incomplete step
         const nextIdx = STEPS.findIndex((s) => !updated[s.key]);
-        setExpandedStep(nextIdx === -1 ? null : nextIdx);
+        setActiveStep(nextIdx === -1 ? null : nextIdx);
       }
     },
     [participant, steps, infraResult]
   );
 
-  /* ── Loading ──────────────────────────────────────── */
+  /* ── Loading ─────────────────────────────────────── */
 
   if (participantLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]" role="status" aria-label="Loading wizard">
+      <div
+        className="flex items-center justify-center min-h-[50vh]"
+        role="status"
+        aria-label="Loading"
+      >
         <Loader2 className="w-6 h-6 text-accent animate-spin" aria-hidden="true" />
       </div>
     );
@@ -385,208 +376,34 @@ export default function WizardPlaceholder() {
     );
   }
 
-  /* ── All done state ─────────────────────────────── */
+  /* ── All done banner ─────────────────────────────── */
 
-  if (completedMessage) {
-    const teamHasRepo = team?.github_repo_url || infraResult?.github_repo_url;
-    const teamHasChannel = team?.discord_channel_id || infraResult?.discord_channel_id;
-    const infraSuccess =
-      infraResult?.status === "complete" ||
-      infraResult?.status === "partial" ||
-      Boolean(teamHasRepo) ||
-      Boolean(teamHasChannel);
-    const waitingForTeammates = infraResult?.status === "incomplete";
+  const AllDoneBanner = allDone ? (
+    <div className="flex items-center gap-3 bg-accent/10 border border-accent/30 rounded-2xl px-5 py-4 mb-6 text-sm text-accent">
+      <Clock className="w-4 h-4 shrink-0 animate-pulse" aria-hidden="true" />
+      <span>
+        All steps complete! Setting up your team infrastructure and redirecting
+        you to the home page…
+      </span>
+    </div>
+  ) : null;
 
-    return (
-      <div className="max-w-2xl mx-auto">
-        {/* Welcome */}
-        <div className="mb-10 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-accent/15 border border-accent/30 mb-4">
-            <Sparkles className="w-8 h-8 text-accent" aria-hidden="true" />
-          </div>
-          <h1 className="font-heading text-2xl text-foreground tracking-wider uppercase">
-            {infraSuccess ? "You're All Set!" : "Onboarding Complete!"}
-          </h1>
-          <p className="text-foreground/60 mt-2 max-w-md mx-auto">
-            {waitingForTeammates
-              ? "Your steps are done! Waiting for your teammates to finish before we create your team infrastructure."
-              : infraSuccess
-                ? "Your team's repo and Discord channel are ready."
-                : "All onboarding steps are complete. Infrastructure could not be created — check back later."}
-          </p>
-        </div>
-
-        {/* Team card */}
-        <div className="bg-muted border border-border rounded-2xl p-6 mb-8">
-          <h2 className="font-heading text-xs tracking-wider text-accent uppercase mb-3">
-            Your Team
-          </h2>
-          <p className="text-lg font-medium">{team?.name ?? participant.name}</p>
-          <p className="text-foreground/40 text-sm font-mono mt-1">
-            {participant.email}
-          </p>
-
-          {teammates.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-border/40 space-y-2">
-              <p className="text-xs text-foreground/40 uppercase tracking-wider">
-                Teammates
-              </p>
-              {teammates.map((t) => (
-                <div key={t.id} className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-background border border-border flex items-center justify-center">
-                    <User className="w-4 h-4 text-foreground/40" aria-hidden="true" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-foreground/80">{t.name}</p>
-                    <p className="text-xs text-foreground/40 font-mono">
-                      {t.email}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Repo link */}
-          {teamHasRepo && (
-            <a
-              href={teamHasRepo}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-4 inline-flex items-center gap-2 text-sm text-secondary hover:text-secondary/80 transition-colors duration-150 cursor-pointer"
-            >
-              <SiGithub className="w-4 h-4" aria-hidden="true" />
-              View your team repo
-              <ExternalLink className="w-3 h-3" aria-hidden="true" />
-            </a>
-          )}
-
-          {infraResult?.github_error && !teamHasRepo && (
-            <p className="mt-4 text-sm text-foreground/50">
-              GitHub repo not created: {infraResult.github_error}
-            </p>
-          )}
-
-          {/* Discord channel */}
-          {teamHasChannel && (
-            <div className="mt-3">
-              <a
-                href={`https://discord.com/channels/${infraResult?.discord_guild_id ?? "@me"}/${infraResult?.discord_channel_id ?? team.discord_channel_id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-sm text-[#5865F2] hover:text-[#4752C4] transition-colors duration-150 cursor-pointer"
-              >
-                <SiDiscord className="w-4 h-4" aria-hidden="true" />
-                Open Discord Channel
-                <ExternalLink className="w-3 h-3" aria-hidden="true" />
-              </a>
-            </div>
-          )}
-
-          {infraResult?.discord_error && !teamHasChannel && (
-            <p className="mt-4 text-sm text-foreground/50">
-              Discord channel not created: {infraResult.discord_error}
-            </p>
-          )}
-
-          {/* Waiting for teammates */}
-          {waitingForTeammates && (
-            <div className="mt-4 p-4 rounded-xl bg-secondary/5 border border-secondary/10">
-              <div className="flex items-center gap-2 text-secondary text-sm">
-                <AlertCircle className="w-4 h-4" aria-hidden="true" />
-                <span>Waiting for all teammates to complete their steps before creating the team infrastructure.</span>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  /* ── Main Wizard ─────────────────────────────────── */
+  /* ── Main Layout ─────────────────────────────────── */
 
   return (
-    <div className="max-w-2xl mx-auto">
-      {/* Welcome */}
-      <div className="mb-8">
-        <h1 className="font-heading text-2xl text-foreground tracking-wider uppercase">
-          Welcome, {participant.name}
+    <div className="max-w-5xl mx-auto">
+      {/* Page header */}
+      <div className="mb-6">
+        <h1 className="font-heading text-xl text-foreground tracking-wider uppercase">
+          {hackathonName || "Hackathon Setup"}
         </h1>
-        <p className="text-foreground/60 mt-1">
-          {hackathonName && (
-            <span className="text-accent">{hackathonName}</span>
-          )}{" "}
-          — Complete each step below to set up your accounts.
+        <p className="text-foreground/50 text-sm mt-1">
+          Welcome, {participant.name} — complete each step below to get your
+          team ready.
         </p>
       </div>
 
-      {/* Progress */}
-      <div className="flex items-center gap-2 mb-8">
-        {STEPS.map((s, i) => {
-          const done = steps[s.key];
-          const isCurrent = i === currentStepIndex;
-          return (
-            <div key={s.key} className="flex-1 flex items-center gap-2">
-              <div
-                className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                  done
-                    ? "bg-accent shadow-[0_0_6px_rgba(34,197,94,0.5)]"
-                    : isCurrent
-                      ? "bg-accent/60"
-                      : "bg-muted border border-border"
-                }`}
-                aria-label={
-                  done
-                    ? `${s.label} complete`
-                    : isCurrent
-                      ? `Current step: ${s.label}`
-                      : s.label
-                }
-              />
-              {i < STEPS.length - 1 && (
-                <div
-                  className={`flex-1 h-px transition-colors duration-300 ${
-                    done ? "bg-accent/40" : "bg-border"
-                  }`}
-                />
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Team card */}
-      <div className="bg-muted border border-border rounded-2xl p-5 mb-8">
-        <h2 className="font-heading text-xs tracking-wider text-accent uppercase mb-2">
-          Your Team
-        </h2>
-        <p className="text-lg font-medium">{team?.name ?? participant.name}</p>
-        <p className="text-foreground/40 text-sm font-mono">{participant.email}</p>
-        {teammates.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {teammates.map((t) => (
-              <span
-                key={t.id}
-                className="text-xs bg-background border border-border/60 rounded-full px-3 py-1 text-foreground/60"
-              >
-                {t.name}
-              </span>
-            ))}
-          </div>
-        )}
-        {team?.github_repo_url && (
-          <a
-            href={team.github_repo_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-3 inline-flex items-center gap-1.5 text-xs text-secondary hover:text-secondary/80 transition-colors duration-150 cursor-pointer"
-          >
-            <SiGithub className="w-3.5 h-3.5" aria-hidden="true" />
-            Team repo
-            <ExternalLink className="w-3 h-3" aria-hidden="true" />
-          </a>
-        )}
-      </div>
+      {AllDoneBanner}
 
       {/* Error banner */}
       {saveError && (
@@ -600,205 +417,221 @@ export default function WizardPlaceholder() {
       {infraCreating && (
         <div className="flex items-center gap-3 bg-accent/5 border border-accent/20 rounded-xl px-4 py-3 mb-6 text-sm text-accent">
           <Loader2 className="w-4 h-4 shrink-0 animate-spin" aria-hidden="true" />
-          Setting up your team's GitHub repo and Discord channel…
+          Setting up your team&apos;s GitHub repo and Discord channel…
         </div>
       )}
 
-      {/* Steps */}
-      <div className="space-y-3">
-        {STEPS.map((step, i) => {
-          const isComplete = steps[step.key];
-          const isActive =
-            expandedStep === i || (!isComplete && expandedStep === null && currentStepIndex === i);
+      {/* Two-column layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
 
-          return (
-            <StepCard
-              key={step.key}
-              step={step}
-              index={i}
-              isComplete={isComplete}
-              isActive={isActive}
-              onToggle={() =>
-                setExpandedStep(expandedStep === i ? null : i)
-              }
-            >
-              <div className="space-y-4 mt-3">
-                <p className="text-sm text-foreground/70 leading-relaxed">
-                  {step.description}
+        {/* ── Left: Step detail panel ── */}
+        <div className="space-y-4">
+          {/* If a step is selected, show its detail */}
+          {activeStep !== null && !allDone ? (
+            <StepDetail
+              step={STEPS[activeStep]}
+              index={activeStep}
+              isComplete={steps[STEPS[activeStep].key]}
+              saving={saving}
+              onMark={markStep}
+            />
+          ) : allDone ? (
+            /* All done — show team infrastructure result */
+            <div className="bg-muted/60 border border-border rounded-2xl p-6 space-y-4">
+              <h2 className="font-heading text-sm tracking-wider text-accent uppercase">
+                Team Infrastructure
+              </h2>
+
+              {/* GitHub repo */}
+              {(team?.github_repo_url || infraResult?.github_repo_url) ? (
+                <a
+                  href={team?.github_repo_url ?? infraResult?.github_repo_url ?? "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-sm text-secondary hover:text-secondary/80 transition-colors duration-150"
+                >
+                  <SiGithub className="w-4 h-4" aria-hidden="true" />
+                  View team GitHub repo
+                  <ExternalLink className="w-3 h-3" aria-hidden="true" />
+                </a>
+              ) : infraResult?.github_error ? (
+                <p className="text-sm text-foreground/50">
+                  GitHub repo: {infraResult.github_error}
                 </p>
+              ) : null}
 
-                {/* Step 1: AMD */}
-                {step.key === "amd" && !isComplete && (
-                  <div className="space-y-3">
-                    <a
-                      href={step.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-sm text-secondary hover:text-secondary/80 transition-colors duration-150 cursor-pointer"
-                    >
-                      <ExternalLink className="w-4 h-4" aria-hidden="true" />
-                      {step.hrefLabel}
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => markStep("amd")}
-                      disabled={saving}
-                      className="w-full flex items-center justify-center gap-2 bg-accent text-white font-medium rounded-xl px-5 py-3 hover:bg-accent/90 active:scale-[0.97] transition-all duration-150 disabled:opacity-50 cursor-pointer"
-                    >
-                      {saving ? (
-                        <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-                      ) : (
-                        <Check className="w-4 h-4" aria-hidden="true" />
-                      )}
-                      I&apos;ve signed up — Mark Complete
-                    </button>
-                  </div>
-                )}
+              {/* Discord channel */}
+              {(team?.discord_channel_id || infraResult?.discord_channel_id) ? (
+                <a
+                  href={`https://discord.com/channels/${
+                    infraResult?.discord_guild_id ?? "@me"
+                  }/${infraResult?.discord_channel_id ?? team?.discord_channel_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-sm text-[#5865F2] hover:text-[#4752C4] transition-colors duration-150"
+                >
+                  <SiDiscord className="w-4 h-4" aria-hidden="true" />
+                  Open team Discord channel
+                  <ExternalLink className="w-3 h-3" aria-hidden="true" />
+                </a>
+              ) : infraResult?.discord_error ? (
+                <p className="text-sm text-foreground/50">
+                  Discord channel: {infraResult.discord_error}
+                </p>
+              ) : null}
 
-                {/* Step 2: Fireworks */}
-                {step.key === "fireworks" && !isComplete && (
-                  <div className="space-y-3">
-                    <a
-                      href={step.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-sm text-secondary hover:text-secondary/80 transition-colors duration-150 cursor-pointer"
-                    >
-                      <ExternalLink className="w-4 h-4" aria-hidden="true" />
-                      {step.hrefLabel}
-                    </a>
-                    <div className="flex items-start gap-2.5 p-3 rounded-xl bg-secondary/5 border border-secondary/10">
-                      <Mail className="w-4 h-4 text-secondary shrink-0 mt-0.5" aria-hidden="true" />
-                      <p className="text-xs text-foreground/60 leading-relaxed">
-                        After requesting your promo code on AMD DevCloud, check
-                        your email inbox. You don&apos;t need to paste anything
-                        here — just confirm you received the email.
-                      </p>
+              {infraResult?.status === "incomplete" && (
+                <div className="flex items-start gap-2 p-3 rounded-xl bg-secondary/5 border border-secondary/10 text-secondary text-sm">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
+                  <span>
+                    Waiting for all teammates to complete their steps before
+                    creating your team infrastructure.
+                  </span>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* No step selected yet */
+            <div className="bg-muted/40 border border-border/40 rounded-2xl p-8 text-center text-foreground/40 text-sm">
+              Select a step from the checklist to get started.
+            </div>
+          )}
+
+          {/* Team card */}
+          <div className="bg-muted/60 border border-border rounded-2xl p-5">
+            <h2 className="font-heading text-xs tracking-wider text-accent uppercase mb-3">
+              Your Team
+            </h2>
+            <p className="text-base font-semibold text-foreground">
+              {team?.name ?? participant.name}
+            </p>
+            <p className="text-foreground/40 text-xs font-mono mt-0.5">
+              {participant.email}
+            </p>
+
+            {teammates.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-border/40 space-y-2">
+                <p className="text-xs text-foreground/40 uppercase tracking-wider">
+                  Teammates
+                </p>
+                {teammates.map((t) => (
+                  <div key={t.id} className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-full bg-background border border-border flex items-center justify-center shrink-0">
+                      <User className="w-3.5 h-3.5 text-foreground/40" aria-hidden="true" />
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => markStep("fireworks")}
-                      disabled={saving}
-                      className="w-full flex items-center justify-center gap-2 bg-accent text-white font-medium rounded-xl px-5 py-3 hover:bg-accent/90 active:scale-[0.97] transition-all duration-150 disabled:opacity-50 cursor-pointer"
-                    >
-                      {saving ? (
-                        <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-                      ) : (
-                        <Check className="w-4 h-4" aria-hidden="true" />
-                      )}
-                      I got the promo code — Mark Complete
-                    </button>
-                  </div>
-                )}
-
-                {/* Step 3: Natively AI */}
-                {step.key === "natively_ai" && !isComplete && (
-                  <div className="space-y-3">
-                    <a
-                      href={step.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-sm text-secondary hover:text-secondary/80 transition-colors duration-150 cursor-pointer"
-                    >
-                      <ExternalLink className="w-4 h-4" aria-hidden="true" />
-                      {step.hrefLabel}
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => markStep("natively_ai")}
-                      disabled={saving}
-                      className="w-full flex items-center justify-center gap-2 bg-accent text-white font-medium rounded-xl px-5 py-3 hover:bg-accent/90 active:scale-[0.97] transition-all duration-150 disabled:opacity-50 cursor-pointer"
-                    >
-                      {saving ? (
-                        <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-                      ) : (
-                        <Check className="w-4 h-4" aria-hidden="true" />
-                      )}
-                      I&apos;ve signed up — Mark Complete
-                    </button>
-                  </div>
-                )}
-
-                {/* Step 4: Discord */}
-                {step.key === "discord" && !isComplete && (
-                  <div className="space-y-3">
-                    <a
-                      href={step.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-sm text-secondary hover:text-secondary/80 transition-colors duration-150 cursor-pointer"
-                    >
-                      <ExternalLink className="w-4 h-4" aria-hidden="true" />
-                      {step.hrefLabel}
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => markStep("discord")}
-                      disabled={saving}
-                      className="w-full flex items-center justify-center gap-2 bg-accent text-white font-medium rounded-xl px-5 py-3 hover:bg-accent/90 active:scale-[0.97] transition-all duration-150 disabled:opacity-50 cursor-pointer"
-                    >
-                      {saving ? (
-                        <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-                      ) : (
-                        <Check className="w-4 h-4" aria-hidden="true" />
-                      )}
-                      I&apos;ve joined — Mark Complete
-                    </button>
-                  </div>
-                )}
-
-                {/* Step 5: GitHub */}
-                {step.key === "github" && !isComplete && (
-                  <div className="space-y-3">
-                    <div className="flex flex-wrap gap-3">
-                      <a
-                        href={step.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 text-sm text-secondary hover:text-secondary/80 transition-colors duration-150 cursor-pointer"
-                      >
-                        <ExternalLink className="w-4 h-4" aria-hidden="true" />
-                        {step.hrefLabel}
-                      </a>
-                      {step.href2 && step.hrefLabel2 && (
-                        <a
-                          href={step.href2}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-sm text-secondary hover:text-secondary/80 transition-colors duration-150 cursor-pointer"
-                        >
-                          <ExternalLink className="w-4 h-4" aria-hidden="true" />
-                          {step.hrefLabel2}
-                        </a>
-                      )}
+                    <div>
+                      <p className="text-sm text-foreground/80 leading-none">{t.name}</p>
+                      <p className="text-xs text-foreground/40 font-mono mt-0.5">{t.email}</p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => markStep("github")}
-                      disabled={saving}
-                      className="w-full flex items-center justify-center gap-2 bg-accent text-white font-medium rounded-xl px-5 py-3 hover:bg-accent/90 active:scale-[0.97] transition-all duration-150 disabled:opacity-50 cursor-pointer"
-                    >
-                      {saving ? (
-                        <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-                      ) : (
-                        <Check className="w-4 h-4" aria-hidden="true" />
-                      )}
-                      I have a GitHub account — Mark Complete
-                    </button>
                   </div>
-                )}
-
-                {/* Completed state for any step */}
-                {isComplete && (
-                  <div className="flex items-center gap-2 text-accent text-sm">
-                    <Check className="w-4 h-4" aria-hidden="true" />
-                    <span>Completed</span>
-                  </div>
-                )}
+                ))}
               </div>
-            </StepCard>
-          );
-        })}
+            )}
+
+            {team?.github_repo_url && (
+              <a
+                href={team.github_repo_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-flex items-center gap-1.5 text-xs text-secondary hover:text-secondary/80 transition-colors duration-150"
+              >
+                <SiGithub className="w-3.5 h-3.5" aria-hidden="true" />
+                Team repo
+                <ExternalLink className="w-3 h-3" aria-hidden="true" />
+              </a>
+            )}
+          </div>
+        </div>
+
+        {/* ── Right: Checklist panel (lablab.ai style) ── */}
+        <div className="bg-muted/60 border border-border rounded-2xl p-5 lg:sticky lg:top-6">
+          {/* Panel header */}
+          <h2 className="text-sm font-semibold text-foreground mb-1">
+            Team Progress Checklist
+          </h2>
+          <p className="text-xs text-foreground/50 mb-5 leading-relaxed">
+            Follow each step to keep your team on track and ready for
+            submission.
+          </p>
+
+          {/* Progress bar */}
+          <div className="w-full bg-border rounded-full h-1 mb-5 overflow-hidden">
+            <div
+              className="h-1 rounded-full bg-accent transition-all duration-500"
+              style={{ width: `${(completedCount / STEPS.length) * 100}%` }}
+              role="progressbar"
+              aria-valuenow={completedCount}
+              aria-valuemin={0}
+              aria-valuemax={STEPS.length}
+              aria-label={`${completedCount} of ${STEPS.length} steps complete`}
+            />
+          </div>
+
+          {/* Checklist items */}
+          <ol className="space-y-1" aria-label="Setup checklist">
+            {STEPS.map((step, i) => {
+              const isComplete = steps[step.key];
+              const isActive = activeStep === i;
+
+              return (
+                <li key={step.key}>
+                  <button
+                    type="button"
+                    onClick={() => setActiveStep(isActive ? null : i)}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all duration-150 group ${
+                      isActive
+                        ? "bg-accent/10 border border-accent/20"
+                        : "border border-transparent hover:bg-background/60"
+                    }`}
+                    aria-current={isActive ? "step" : undefined}
+                  >
+                    {/* Number / check circle */}
+                    <div
+                      className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-xs font-bold transition-all duration-200 ${
+                        isComplete
+                          ? "bg-accent text-background"
+                          : isActive
+                            ? "border-2 border-accent text-accent bg-background"
+                            : "border-2 border-border/60 text-foreground/40 bg-background"
+                      }`}
+                      aria-hidden="true"
+                    >
+                      {isComplete ? (
+                        <Check className="w-3.5 h-3.5" />
+                      ) : (
+                        <span>{i + 1}</span>
+                      )}
+                    </div>
+
+                    {/* Label */}
+                    <span
+                      className={`text-sm flex-1 leading-snug transition-colors duration-150 ${
+                        isComplete
+                          ? "text-foreground/50 line-through"
+                          : isActive
+                            ? "text-foreground font-medium"
+                            : "text-foreground/70 group-hover:text-foreground"
+                      }`}
+                    >
+                      {step.label}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+
+          {/* Footer count */}
+          <div className="mt-5 pt-4 border-t border-border/40 flex items-center justify-between text-xs text-foreground/40">
+            <span>{completedCount} of {STEPS.length} complete</span>
+            {allDone && (
+              <span className="text-accent font-medium flex items-center gap-1">
+                <Check className="w-3 h-3" />
+                All done!
+              </span>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
