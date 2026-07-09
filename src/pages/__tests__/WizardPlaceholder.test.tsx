@@ -1,19 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-/* ── Actual step labels from WizardPlaceholder STEPS ── */
+/* ── Current step labels (must match STEPS in WizardPlaceholder) ── */
 const EXPECTED_STEP_LABELS = [
-  "AMD Cloud Account",
-  "Fireworks Promo Code",
-  "Natively AI Account",
-  "Join Discord",
-  "Join GitHub",
+  "Sign up for AMD Cloud",
+  "Claim your Fireworks promo code",
+  "Create a Natively AI account",
+  "Join the lablab Discord for mentor support",
+  "Join the team Discord server",
+  "Set up your GitHub account",
 ];
 
-/* ── Step keys (must match STEPS array) ──────────────── */
-// These keys must match the STEPS array in WizardPlaceholder
-const EXPECTED_STEP_KEYS: string[] = ["amd", "fireworks", "natively_ai", "discord", "github"];
+const EXPECTED_STEP_KEYS = [
+  "amd",
+  "fireworks",
+  "natively_ai",
+  "lablab_discord",
+  "discord",
+  "github",
+];
 
 /* ── Chain builder ──────────────────────────────────── */
 
@@ -88,64 +95,94 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false } },
 });
 
+/** Wrap in both MemoryRouter (for useNavigate) and QueryClientProvider */
 function renderWizard(Wizard: React.ComponentType) {
   return render(
-    <QueryClientProvider client={queryClient}>
-      <Wizard />
-    </QueryClientProvider>
+    <MemoryRouter>
+      <QueryClientProvider client={queryClient}>
+        <Wizard />
+      </QueryClientProvider>
+    </MemoryRouter>
   );
 }
 
 let Wizard: React.ComponentType;
 
-async function setupDefaultMocks(
-  participantOverride?: Record<string, unknown>,
-  teamOverride?: Record<string, unknown>
-) {
-  const participant = participantOverride ?? {
+function makeBaseParticipant(overrides?: Record<string, unknown>) {
+  return {
     id: "p-1",
     name: "Test User",
     email: "test@example.com",
     team_id: "team-1",
     hackathon_id: "hack-1",
-    steps_completed: { amd: false, fireworks: false, natively_ai: false, discord: false, github: false },
+    steps_completed: {
+      amd: false,
+      fireworks: false,
+      natively_ai: false,
+      lablab_discord: false,
+      discord: false,
+      github: false,
+    },
     auth_user_id: "user-1",
     github_username: null,
     discord_username: null,
     created_at: "2024-01-01T00:00:00Z",
+    ...overrides,
   };
+}
+
+async function setupDefaultMocks(
+  participantOverride?: Record<string, unknown>,
+  teamOverride?: Record<string, unknown>
+) {
+  const participant = participantOverride ?? makeBaseParticipant();
 
   mockUseCurrentParticipant.mockReturnValue({ participant, loading: false });
 
-  // team
   const teamChain = createChain({
-    single: { data: teamOverride ?? { id: "team-1", name: "My Team" }, error: null },
+    single: {
+      data: teamOverride ?? {
+        id: "team-1",
+        name: "My Team",
+        is_approved: false,
+        github_repo_url: null,
+        discord_channel_id: null,
+        mentor_name: null,
+        mentor_discord_username: null,
+      },
+      error: null,
+    },
   });
   teamChain.select = vi.fn(() => teamChain);
   teamChain.eq = vi.fn(() => teamChain);
 
-  // hackathon
   const hackChain = createChain({
     single: { data: { name: "Test Hackathon" }, error: null },
   });
   hackChain.select = vi.fn(() => hackChain);
   hackChain.eq = vi.fn(() => hackChain);
 
-  // teammates
   const teammateChain = createChain();
   teammateChain.select = vi.fn(() => teammateChain);
   teammateChain.eq = vi.fn(() => teammateChain);
   teammateChain.neq = vi.fn(() => ({
     then: vi.fn((cb?: unknown) =>
-      Promise.resolve(typeof cb === "function" ? cb({ data: [], error: null }) : { data: [], error: null })
+      Promise.resolve(
+        typeof cb === "function"
+          ? cb({ data: [], error: null })
+          : { data: [], error: null }
+      )
     ),
   }));
 
-  // audit_logs
   const auditChain = createChain();
   auditChain.insert = vi.fn(() => ({
     then: vi.fn((cb?: unknown) =>
-      Promise.resolve(typeof cb === "function" ? cb({ data: null, error: null }) : { data: null, error: null })
+      Promise.resolve(
+        typeof cb === "function"
+          ? cb({ data: null, error: null })
+          : { data: null, error: null }
+      )
     ),
   }));
 
@@ -171,7 +208,7 @@ beforeEach(async () => {
 /* ── getStepsCompleted tests ────────────────────────── */
 
 describe("getStepsCompleted helper", () => {
-  it("parses all 5 keys from a valid object", () => {
+  it("parses all 6 keys from a valid object", () => {
     const getStepsCompleted = (raw: unknown) => {
       if (typeof raw === "object" && raw !== null) {
         const r = raw as Record<string, unknown>;
@@ -179,17 +216,39 @@ describe("getStepsCompleted helper", () => {
           amd: Boolean(r.amd),
           fireworks: Boolean(r.fireworks),
           natively_ai: Boolean(r.natively_ai),
+          lablab_discord: Boolean(r.lablab_discord),
           discord: Boolean(r.discord),
           github: Boolean(r.github),
         };
       }
-      return { amd: false, fireworks: false, natively_ai: false, discord: false, github: false };
+      return {
+        amd: false,
+        fireworks: false,
+        natively_ai: false,
+        lablab_discord: false,
+        discord: false,
+        github: false,
+      };
     };
 
-    const allTrue = { amd: true, fireworks: true, natively_ai: true, discord: true, github: true };
+    const allTrue = {
+      amd: true,
+      fireworks: true,
+      natively_ai: true,
+      lablab_discord: true,
+      discord: true,
+      github: true,
+    };
     expect(getStepsCompleted(allTrue)).toEqual(allTrue);
 
-    const allFalse = { amd: false, fireworks: false, natively_ai: false, discord: false, github: false };
+    const allFalse = {
+      amd: false,
+      fireworks: false,
+      natively_ai: false,
+      lablab_discord: false,
+      discord: false,
+      github: false,
+    };
     expect(getStepsCompleted(null)).toEqual(allFalse);
     expect(getStepsCompleted(undefined)).toEqual(allFalse);
     expect(getStepsCompleted({})).toEqual(allFalse);
@@ -203,87 +262,80 @@ describe("getStepsCompleted helper", () => {
           amd: Boolean(r.amd),
           fireworks: Boolean(r.fireworks),
           natively_ai: Boolean(r.natively_ai),
+          lablab_discord: Boolean(r.lablab_discord),
           discord: Boolean(r.discord),
           github: Boolean(r.github),
         };
       }
-      return { amd: false, fireworks: false, natively_ai: false, discord: false, github: false };
+      return {
+        amd: false,
+        fireworks: false,
+        natively_ai: false,
+        lablab_discord: false,
+        discord: false,
+        github: false,
+      };
     };
 
     const partial = getStepsCompleted({ amd: true });
     expect(partial.amd).toBe(true);
     expect(partial.fireworks).toBe(false);
     expect(partial.natively_ai).toBe(false);
+    expect(partial.lablab_discord).toBe(false);
     expect(partial.discord).toBe(false);
     expect(partial.github).toBe(false);
+  });
+
+  it("has the expected 6 step keys", () => {
+    expect(EXPECTED_STEP_KEYS).toHaveLength(6);
+    expect(EXPECTED_STEP_KEYS).toContain("lablab_discord");
   });
 });
 
 /* ── Step ordering tests ────────────────────────────── */
 
 describe("WizardPlaceholder — step order", () => {
-  it("shows all 5 step labels", async () => {
+  it("shows all 6 step labels in the checklist", async () => {
     await setupDefaultMocks();
     renderWizard(Wizard);
 
-    // Each of the 5 step labels should be visible
     for (const label of EXPECTED_STEP_LABELS) {
-      expect(screen.getByText(label)).toBeInTheDocument();
+      expect(
+        await screen.findByText(label),
+        `Missing step label: "${label}"`
+      ).toBeInTheDocument();
     }
   });
 
-  it("renders step indices 1-5 on the step indicator circles", async () => {
+  it("renders step indices 1–6 on the checklist circles", async () => {
     await setupDefaultMocks();
     renderWizard(Wizard);
 
-    // Step numbers 1, 2, 3, 4, 5 appear in the status circles
-    for (let i = 1; i <= 5; i++) {
-      const nums = screen.getAllByText(String(i));
-      expect(nums.length, `Step number ${i} not found in DOM`).toBeGreaterThanOrEqual(1);
+    for (let i = 1; i <= 6; i++) {
+      const nums = await screen.findAllByText(String(i));
+      expect(nums.length, `Step number ${i} not found`).toBeGreaterThanOrEqual(1);
     }
   });
 
-  it("step 2 is locked (button disabled) when step 1 is incomplete", async () => {
+  it("all checklist step buttons are enabled (no locking in new UI)", async () => {
     await setupDefaultMocks();
     renderWizard(Wizard);
 
-    const buttons = screen.getAllByRole("button");
-
-    // Find the step 2 button by its label text
-    const step2Buttons = buttons.filter((btn) =>
-      btn.textContent?.includes("Fireworks Promo Code")
-    );
-
-    expect(step2Buttons.length, "Should find step 2 button").toBeGreaterThanOrEqual(1);
-    step2Buttons.forEach((btn) => {
-      expect(btn).toBeDisabled();
-    });
+    // Every step label button in the checklist should be clickable (not disabled)
+    for (const label of EXPECTED_STEP_LABELS) {
+      const btn = await screen.findByRole("button", { name: new RegExp(label, "i") });
+      expect(btn).not.toBeDisabled();
+    }
   });
 
-  it("steps beyond the first incomplete one are locked", async () => {
+  it("first step detail panel is open by default", async () => {
     await setupDefaultMocks();
     renderWizard(Wizard);
 
-    const buttons = screen.getAllByRole("button");
-
-    // Step 1 (AMD Cloud Account) should be enabled
-    const step1 = buttons.find((btn) =>
-      btn.textContent?.includes("AMD Cloud Account")
-    );
-    expect(step1, "Step 1 button should exist").toBeDefined();
-
-    // Steps 2 through 5 should be disabled
-    for (const label of [
-      "Fireworks Promo Code",
-      "Natively AI Account",
-      "Join Discord",
-      "Join GitHub",
-    ]) {
-      const btns = buttons.filter((btn) => btn.textContent?.includes(label));
-      btns.forEach((b) => {
-        expect(b, `Step "${label}" should be disabled`).toBeDisabled();
-      });
-    }
+    // The first step's description text should be visible in the detail panel
+    expect(
+      await screen.findByText(/accelerated compute/i)
+    ).toBeInTheDocument();
   });
 });
 
@@ -310,54 +362,80 @@ describe("WizardPlaceholder — rendering", () => {
     expect(welcome).toBeInTheDocument();
   });
 
-  it("shows all set state when all 5 steps completed", async () => {
-    const participant = {
-      id: "p-1",
-      name: "Test User",
-      email: "test@example.com",
-      team_id: "team-1",
-      hackathon_id: "hack-1",
-      steps_completed: { amd: true, fireworks: true, natively_ai: true, discord: true, github: true },
-      auth_user_id: "user-1",
-      github_username: "testuser",
-      discord_username: "testuser#1234",
-      created_at: "2024-01-01T00:00:00Z",
-    };
+  it("shows all-done banner when all 6 steps completed", async () => {
+    const participant = makeBaseParticipant({
+      steps_completed: {
+        amd: true,
+        fireworks: true,
+        natively_ai: true,
+        lablab_discord: true,
+        discord: true,
+        github: true,
+      },
+    });
     await setupDefaultMocks(participant, {
       id: "team-1",
       name: "My Team",
       is_approved: true,
       github_repo_url: "https://github.com/org/repo",
       discord_channel_id: "12345",
+      mentor_name: null,
+      mentor_discord_username: null,
     });
     renderWizard(Wizard);
-    const msg = await screen.findByText(/you're all set/i);
-    expect(msg).toBeInTheDocument();
+    // Banner text shown when all steps done
+    const banner = await screen.findByText(/all steps complete/i);
+    expect(banner).toBeInTheDocument();
+  });
+
+  it("shows 'no mentor assigned' placeholder when mentor_name is null", async () => {
+    await setupDefaultMocks();
+    renderWizard(Wizard);
+    const placeholder = await screen.findByText(/no mentor assigned yet/i);
+    expect(placeholder).toBeInTheDocument();
   });
 });
 
 /* ── Progress indicator tests ───────────────────────── */
 
 describe("WizardPlaceholder — progress indicator", () => {
-  it("has progress dots for all 5 steps", async () => {
+  it("renders a progressbar element", async () => {
     await setupDefaultMocks();
     renderWizard(Wizard);
-
-    // Each step label appears as an aria-label on a progress dot.
-    // Use a function matcher because the current step gets a prefix
-    // (e.g. "Current step: AMD Cloud Account").
-    for (const label of EXPECTED_STEP_LABELS) {
-      const dots = screen.getAllByLabelText((content) => content.includes(label));
-      expect(dots.length, `Progress dot missing for "${label}"`).toBeGreaterThanOrEqual(1);
-    }
+    const bar = await screen.findByRole("progressbar");
+    expect(bar).toBeInTheDocument();
   });
 
-  it("first progress dot shows as current when no steps are done", async () => {
+  it("progressbar starts at 0 when no steps are done", async () => {
     await setupDefaultMocks();
     renderWizard(Wizard);
+    const bar = await screen.findByRole("progressbar");
+    expect(bar).toHaveAttribute("aria-valuenow", "0");
+    expect(bar).toHaveAttribute("aria-valuemax", "6");
+  });
 
-    // The first step dot should have "Current step:" prefix
-    const currentDot = screen.getByLabelText(`Current step: ${EXPECTED_STEP_LABELS[0]}`);
-    expect(currentDot).toBeInTheDocument();
+  it("progressbar reflects completed steps count", async () => {
+    const participant = makeBaseParticipant({
+      steps_completed: {
+        amd: true,
+        fireworks: true,
+        natively_ai: false,
+        lablab_discord: false,
+        discord: false,
+        github: false,
+      },
+    });
+    await setupDefaultMocks(participant);
+    renderWizard(Wizard);
+    const bar = await screen.findByRole("progressbar");
+    expect(bar).toHaveAttribute("aria-valuenow", "2");
+  });
+
+  it("checklist has 6 items", async () => {
+    await setupDefaultMocks();
+    renderWizard(Wizard);
+    const list = await screen.findByRole("list", { name: /setup checklist/i });
+    const items = list.querySelectorAll("li");
+    expect(items).toHaveLength(6);
   });
 });
