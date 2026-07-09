@@ -47,23 +47,25 @@ function createChain(responses?: {
     return Promise.resolve(
       typeof onfulfilled === "function"
         ? onfulfilled({ data: null, error: null })
-        : { data: null, error: null }
+        : { data: null, error: null },
     );
   });
 
   if (responses?.maybeSingle) {
     chain.maybeSingle = vi.fn(() =>
-      Promise.resolve(responses.maybeSingle as { data: unknown; error: unknown })
+      Promise.resolve(
+        responses.maybeSingle as { data: unknown; error: unknown },
+      ),
     );
   }
   if (responses?.single) {
     chain.single = vi.fn(() =>
-      Promise.resolve(responses.single as { data: unknown; error: unknown })
+      Promise.resolve(responses.single as { data: unknown; error: unknown }),
     );
   }
   if (responses?.order) {
     chain.order = vi.fn(() =>
-      Promise.resolve(responses.order as { data: unknown; error: unknown })
+      Promise.resolve(responses.order as { data: unknown; error: unknown }),
     );
   }
 
@@ -102,7 +104,7 @@ function renderWizard(Wizard: React.ComponentType) {
       <QueryClientProvider client={queryClient}>
         <Wizard />
       </QueryClientProvider>
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 }
 
@@ -133,7 +135,7 @@ function makeBaseParticipant(overrides?: Record<string, unknown>) {
 
 async function setupDefaultMocks(
   participantOverride?: Record<string, unknown>,
-  teamOverride?: Record<string, unknown>
+  teamOverride?: Record<string, unknown>,
 ) {
   const participant = participantOverride ?? makeBaseParticipant();
 
@@ -170,8 +172,8 @@ async function setupDefaultMocks(
       Promise.resolve(
         typeof cb === "function"
           ? cb({ data: [], error: null })
-          : { data: [], error: null }
-      )
+          : { data: [], error: null },
+      ),
     ),
   }));
 
@@ -181,8 +183,8 @@ async function setupDefaultMocks(
       Promise.resolve(
         typeof cb === "function"
           ? cb({ data: null, error: null })
-          : { data: null, error: null }
-      )
+          : { data: null, error: null },
+      ),
     ),
   }));
 
@@ -199,7 +201,10 @@ async function setupDefaultMocks(
 
 beforeEach(async () => {
   vi.clearAllMocks();
-  mockUseCurrentParticipant.mockReturnValue({ participant: null, loading: true });
+  mockUseCurrentParticipant.mockReturnValue({
+    participant: null,
+    loading: true,
+  });
   mockGetSession.mockResolvedValue({ data: { session: null }, error: null });
   mockFrom.mockReturnValue(createChain());
   Wizard = (await import("../WizardPlaceholder")).default;
@@ -302,7 +307,7 @@ describe("WizardPlaceholder — step order", () => {
     for (const label of EXPECTED_STEP_LABELS) {
       expect(
         await screen.findByText(label),
-        `Missing step label: "${label}"`
+        `Missing step label: "${label}"`,
       ).toBeInTheDocument();
     }
   });
@@ -313,7 +318,9 @@ describe("WizardPlaceholder — step order", () => {
 
     for (let i = 1; i <= 6; i++) {
       const nums = await screen.findAllByText(String(i));
-      expect(nums.length, `Step number ${i} not found`).toBeGreaterThanOrEqual(1);
+      expect(nums.length, `Step number ${i} not found`).toBeGreaterThanOrEqual(
+        1,
+      );
     }
   });
 
@@ -323,7 +330,9 @@ describe("WizardPlaceholder — step order", () => {
 
     // Every step label button in the checklist should be clickable (not disabled)
     for (const label of EXPECTED_STEP_LABELS) {
-      const btn = await screen.findByRole("button", { name: new RegExp(label, "i") });
+      const btn = await screen.findByRole("button", {
+        name: new RegExp(label, "i"),
+      });
       expect(btn).not.toBeDisabled();
     }
   });
@@ -333,9 +342,7 @@ describe("WizardPlaceholder — step order", () => {
     renderWizard(Wizard);
 
     // The first step's description text should be visible in the detail panel
-    expect(
-      await screen.findByText(/accelerated compute/i)
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/accelerated compute/i)).toBeInTheDocument();
   });
 });
 
@@ -343,13 +350,19 @@ describe("WizardPlaceholder — step order", () => {
 
 describe("WizardPlaceholder — rendering", () => {
   it("shows loading state when participant is loading", () => {
-    mockUseCurrentParticipant.mockReturnValue({ participant: null, loading: true });
+    mockUseCurrentParticipant.mockReturnValue({
+      participant: null,
+      loading: true,
+    });
     renderWizard(Wizard);
     expect(screen.getByRole("status")).toBeInTheDocument();
   });
 
   it("shows not found message when no participant", async () => {
-    mockUseCurrentParticipant.mockReturnValue({ participant: null, loading: false });
+    mockUseCurrentParticipant.mockReturnValue({
+      participant: null,
+      loading: false,
+    });
     renderWizard(Wizard);
     const msg = await screen.findByText(/no hackathon found/i);
     expect(msg).toBeInTheDocument();
@@ -393,6 +406,29 @@ describe("WizardPlaceholder — rendering", () => {
     renderWizard(Wizard);
     const placeholder = await screen.findByText(/no mentor assigned yet/i);
     expect(placeholder).toBeInTheDocument();
+  });
+
+  it("shows the completion banner when the team is already approved from a previous session", async () => {
+    const participant = makeBaseParticipant({
+      steps_completed: {
+        amd: true,
+        fireworks: true,
+        natively_ai: true,
+        lablab_discord: true,
+        discord: true,
+        github: true,
+      },
+      github_username: "testuser",
+      discord_username: "testuser#1234",
+    });
+    await setupDefaultMocks(participant, {
+      id: "team-1",
+      name: "My Team",
+      is_approved: true,
+    });
+    renderWizard(Wizard);
+    const banner = await screen.findByText(/all steps complete/i);
+    expect(banner).toBeInTheDocument();
   });
 });
 
